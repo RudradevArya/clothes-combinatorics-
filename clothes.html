@@ -6,7 +6,7 @@
     <title>Wardrobe Optimizer</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .calculator-card { background: white; padding: 2rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 400px; }
+        .calculator-card { background: white; padding: 2rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 420px; }
         h2 { margin-top: 0; color: #2c3e50; text-align: center; }
         
         .input-group { margin-bottom: 20px; }
@@ -34,6 +34,16 @@
 
         .big-number { font-size: 1.4rem; font-weight: bold; margin-bottom: 2px; }
         .details { font-size: 0.85rem; color: #7f8c8d; }
+        
+        /* New Style for the Item List */
+        .item-list {
+            margin-top: 8px;
+            font-family: monospace;
+            background: rgba(255,255,255,0.6);
+            padding: 8px;
+            border-radius: 4px;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -43,7 +53,10 @@
     
     <div class="input-group">
         <label>1. How many Categories?</label>
-        <input type="number" id="numCategories" value="3" min="1" placeholder="e.g. 3 (Shirt, Pant, Sock)">
+        <input type="number" id="numCategories" value="3" min="1" max="8" placeholder="e.g. 3">
+        <div style="font-size: 0.8rem; color: #95a5a6; margin-top: 4px;">
+            Defaults: Shirt, Pant, Socks, Handkerchief...
+        </div>
     </div>
 
     <div class="input-group">
@@ -70,7 +83,7 @@
             </div>
             <div class="big-number"><span id="exactSum">--</span> Items</div>
             <div class="details">To hit exactly <span id="exactTarget">--</span> days</div>
-            <div class="details" style="margin-top:5px; font-family:monospace" id="exactSplit">--</div>
+            <div class="item-list" id="exactSplit">--</div>
         </div>
 
         <div class="stat-card winner">
@@ -80,12 +93,15 @@
             </div>
             <div class="big-number"><span id="optSum">--</span> Items</div>
             <div class="details">Gives you <span id="optOutfits">--</span> days (<span id="bonusDays">+0</span> bonus)</div>
-            <div class="details" style="margin-top:5px; font-family:monospace" id="optSplit">--</div>
+            <div class="item-list" id="optSplit">--</div>
         </div>
     </div>
 </div>
 
 <script>
+    // Define the labels in your preferred order
+    const CAT_LABELS = ["Shirts", "Pants", "Socks", "Handkerchiefs", "Hats", "Jackets", "Shoes", "Belts"];
+
     function updateDays() {
         document.getElementById("targetDays").value = document.getElementById("presetRange").value;
     }
@@ -96,33 +112,39 @@
         
         if(cats < 1 || target < 1) return alert("Please enter valid numbers");
 
-        // --- STRATEGY 1: EXACT TARGET (Prime Factorization) ---
+        // Calculate both strategies
         let exactStats = getExactStats(target, cats);
-
-        // --- STRATEGY 2: OPTIMIZED (The "Square/Cube" Method) ---
         let optStats = getOptimizedStats(target, cats);
 
-        // --- RENDER RESULTS ---
+        // Show the box
         document.getElementById("comparison").style.display = "block";
         
-        // Render Exact
+        // Render Exact Results
         document.getElementById("exactSum").innerText = exactStats.sum;
         document.getElementById("exactTarget").innerText = target;
-        document.getElementById("exactSplit").innerText = "Split: " + exactStats.split.join(" × ");
+        document.getElementById("exactSplit").innerHTML = formatSplit(exactStats.split);
 
-        // Render Optimized
+        // Render Optimized Results
         document.getElementById("optSum").innerText = optStats.sum;
         document.getElementById("optOutfits").innerText = optStats.outfits;
         document.getElementById("bonusDays").innerText = "+" + (optStats.outfits - target);
-        document.getElementById("optSplit").innerText = "Split: " + optStats.split.join(" × ");
+        document.getElementById("optSplit").innerHTML = formatSplit(optStats.split);
+    }
+
+    // --- Helper: Formats the array [8, 7, 7] into "8 Shirts<br>7 Pants<br>7 Socks" ---
+    function formatSplit(numbers) {
+        return numbers.map((count, index) => {
+            // Use the label from our list, or "Category X" if we run out of names
+            let name = CAT_LABELS[index] || `Category ${index + 1}`;
+            return `<b>${count}</b> ${name}`;
+        }).join(" &nbsp;×&nbsp; ");
     }
 
     // --- LOGIC: Optimization (Climbing Method) ---
     function getOptimizedStats(target, cats) {
         let base = Math.floor(target ** (1/cats));
-        let wardrobe = new Array(cats).fill(base); // e.g. [7, 7, 7]
+        let wardrobe = new Array(cats).fill(base); 
         
-        // Add items until we pass the target
         while (getProduct(wardrobe) < target) {
             let smallestIdx = wardrobe.indexOf(Math.min(...wardrobe));
             wardrobe[smallestIdx]++;
@@ -133,16 +155,11 @@
     // --- LOGIC: Exact Target (Prime Factorization) ---
     function getExactStats(num, cats) {
         let factors = getPrimeFactors(num);
-        // Start with 1 item in each category
         let buckets = new Array(cats).fill(1);
         
-        // Greedy Algorithm: Multiply largest factors into smallest buckets to keep them balanced
-        // 1. Sort factors largest to smallest (e.g. 61, 3, 2)
         factors.sort((a,b) => b - a);
         
-        // 2. Distribute
         factors.forEach(factor => {
-            // Find the bucket with the currently smallest product
             let minBucketIdx = buckets.indexOf(Math.min(...buckets));
             buckets[minBucketIdx] *= factor;
         });
@@ -150,7 +167,6 @@
         return { split: buckets, sum: getSum(buckets) };
     }
 
-    // Helper: Find all prime factors of a number (e.g. 366 -> [2, 3, 61])
     function getPrimeFactors(n) {
         const factors = [];
         let divisor = 2;
