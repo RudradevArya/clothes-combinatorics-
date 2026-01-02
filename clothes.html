@@ -5,22 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wardrobe Optimizer</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .calculator-card { background: white; padding: 2rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 420px; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f0f2f5; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px;
+        }
+
+        /* Layout Container */
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 900px;
+            flex-wrap: wrap; /* Wraps on mobile */
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* The Calculator Card */
+        .calculator-card { 
+            background: white; 
+            padding: 2rem; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
+            width: 400px; 
+            flex-shrink: 0;
+        }
+
+        /* The Sidebar */
+        .sidebar {
+            background: #e1e8ed;
+            padding: 1.5rem;
+            border-radius: 16px;
+            width: 300px;
+            color: #2c3e50;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        }
+
+        .sidebar h3 { margin-top: 0; color: #2980b9; border-bottom: 2px solid #bdc3c7; padding-bottom: 8px; }
+        .sidebar p { margin-bottom: 15px; }
+        .sidebar ul { padding-left: 20px; }
+        .sidebar li { margin-bottom: 8px; }
+
+        /* Input Styles */
         h2 { margin-top: 0; color: #2c3e50; text-align: center; }
-        
         .input-group { margin-bottom: 20px; }
         label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; }
-        
         .row { display: flex; gap: 10px; }
         select, input { flex: 1; padding: 12px; border: 2px solid #ecf0f1; border-radius: 8px; font-size: 1rem; width: 100%; box-sizing: border-box; transition: border 0.2s; }
         select:focus, input:focus { border-color: #3498db; outline: none; }
         
         button { width: 100%; padding: 14px; background: #3498db; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: transform 0.1s; }
         button:hover { background: #2980b9; }
-        button:active { transform: scale(0.98); }
-
-        /* Comparison Table Styles */
+        
+        /* Results Styles */
         .comparison-box { margin-top: 25px; display: none; }
         .stat-card { background: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 15px; border-left: 5px solid #bdc3c7; }
         .stat-card.winner { background: #e8f8f5; border-left-color: #2ecc71; }
@@ -31,75 +75,84 @@
         .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
         .badge-green { background: #d4efdf; color: #27ae60; }
         .badge-orange { background: #fdebd0; color: #d35400; }
-
         .big-number { font-size: 1.4rem; font-weight: bold; margin-bottom: 2px; }
         .details { font-size: 0.85rem; color: #7f8c8d; }
-        
-        /* New Style for the Item List */
-        .item-list {
-            margin-top: 8px;
-            font-family: monospace;
-            background: rgba(255,255,255,0.6);
-            padding: 8px;
-            border-radius: 4px;
-            color: #333;
-        }
+        .item-list { margin-top: 8px; font-family: monospace; background: rgba(255,255,255,0.6); padding: 8px; border-radius: 4px; color: #333; }
     </style>
 </head>
 <body>
 
-<div class="calculator-card">
-    <h2>👔 Wardrobe Math</h2>
-    
-    <div class="input-group">
-        <label>1. How many Categories?</label>
-        <input type="number" id="numCategories" value="3" min="1" max="8" placeholder="e.g. 3">
-        <div style="font-size: 0.8rem; color: #95a5a6; margin-top: 4px;">
-            Defaults: Shirt, Pant, Socks, Handkerchief...
+<div class="container">
+    <div class="calculator-card">
+        <h2>👔 Wardrobe Math</h2>
+        
+        <div class="input-group">
+            <label>1. How many Categories?</label>
+            <input type="number" id="numCategories" value="3" min="1" max="8" placeholder="e.g. 3">
+            <div style="font-size: 0.8rem; color: #95a5a6; margin-top: 4px;">
+                Defaults: Shirt, Pant, Socks, Handkerchief...
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>2. How many Days?</label>
+            <div class="row">
+                <select id="presetRange" onchange="updateDays()">
+                    <option value="" disabled>Presets...</option>
+                    <option value="30">Month</option>
+                    <option value="365" selected>Year</option>
+                    <option value="366">Leap Year</option>
+                    <option value="29200">Lifetime</option>
+                </select>
+                <input type="number" id="targetDays" value="365" placeholder="Days">
+            </div>
+        </div>
+
+        <button onclick="calculate()">Compare Strategies</button>
+
+        <div id="comparison" class="comparison-box">
+            <div class="stat-card expensive">
+                <div class="card-header">
+                    <span class="card-title">THE "EXACT" WAY</span>
+                    <span class="badge badge-orange">Rigid</span>
+                </div>
+                <div class="big-number"><span id="exactSum">--</span> Items</div>
+                <div class="details">To hit exactly <span id="exactTarget">--</span> days</div>
+                <div class="item-list" id="exactSplit">--</div>
+            </div>
+
+            <div class="stat-card winner">
+                <div class="card-header">
+                    <span class="card-title">THE OPTIMIZED WAY</span>
+                    <span class="badge badge-green">Recommended</span>
+                </div>
+                <div class="big-number"><span id="optSum">--</span> Items</div>
+                <div class="details">Gives you <span id="optOutfits">--</span> days (<span id="bonusDays">+0</span> bonus)</div>
+                <div class="item-list" id="optSplit">--</div>
+            </div>
         </div>
     </div>
 
-    <div class="input-group">
-        <label>2. How many Days?</label>
-        <div class="row">
-            <select id="presetRange" onchange="updateDays()">
-                <option value="" disabled>Presets...</option>
-                <option value="30">Month</option>
-                <option value="365" selected>Year</option>
-                <option value="366">Leap Year</option>
-                <option value="29200">Lifetime</option>
-            </select>
-            <input type="number" id="targetDays" value="365" placeholder="Days">
-        </div>
-    </div>
+    <div class="sidebar">
+        <h3>How it Works</h3>
+        <p>This tool uses <strong>Combinatorics</strong> to find the minimum number of items needed to create a unique outfit every day.</p>
+        
+        <h4>The Logic</h4>
+        <ul>
+            <li><strong>Optimized (Winner):</strong> We calculate the N-th root of your days (e.g., Square root for 2 categories) to find the perfect balance. We assume you can go <em>over</em> the target days to save money on clothes.</li>
+            <li><strong>Exact (Rigid):</strong> We use <em>Prime Factorization</em> to hit the exact number. This often results in weird numbers (like buying 61 shirts for a Leap Year) and costs more.</li>
+        </ul>
 
-    <button onclick="calculate()">Compare Strategies</button>
-
-    <div id="comparison" class="comparison-box">
-        <div class="stat-card expensive">
-            <div class="card-header">
-                <span class="card-title">THE "EXACT" WAY</span>
-                <span class="badge badge-orange">Rigid</span>
-            </div>
-            <div class="big-number"><span id="exactSum">--</span> Items</div>
-            <div class="details">To hit exactly <span id="exactTarget">--</span> days</div>
-            <div class="item-list" id="exactSplit">--</div>
-        </div>
-
-        <div class="stat-card winner">
-            <div class="card-header">
-                <span class="card-title">THE OPTIMIZED WAY</span>
-                <span class="badge badge-green">Recommended</span>
-            </div>
-            <div class="big-number"><span id="optSum">--</span> Items</div>
-            <div class="details">Gives you <span id="optOutfits">--</span> days (<span id="bonusDays">+0</span> bonus)</div>
-            <div class="item-list" id="optSplit">--</div>
-        </div>
+        <h3>Why use this?</h3>
+        <ul>
+            <li><strong>Save Money:</strong> Buy fewer clothes, get more outfits.</li>
+            <li><strong>The "Cicada" Effect:</strong> By using different pile sizes (like 7 shirts and 3 pants), you avoid repeating patterns, just like Cicadas use prime numbers to avoid predators.</li>
+            <li><strong>Capsule Wardrobe:</strong> Perfect for planning a minimalist travel bag or seasonal closet.</li>
+        </ul>
     </div>
 </div>
 
 <script>
-    // Define the labels in your preferred order
     const CAT_LABELS = ["Shirts", "Pants", "Socks", "Handkerchiefs", "Hats", "Jackets", "Shoes", "Belts"];
 
     function updateDays() {
@@ -112,39 +165,33 @@
         
         if(cats < 1 || target < 1) return alert("Please enter valid numbers");
 
-        // Calculate both strategies
         let exactStats = getExactStats(target, cats);
         let optStats = getOptimizedStats(target, cats);
 
-        // Show the box
         document.getElementById("comparison").style.display = "block";
         
-        // Render Exact Results
+        // Render Exact
         document.getElementById("exactSum").innerText = exactStats.sum;
         document.getElementById("exactTarget").innerText = target;
         document.getElementById("exactSplit").innerHTML = formatSplit(exactStats.split);
 
-        // Render Optimized Results
+        // Render Optimized
         document.getElementById("optSum").innerText = optStats.sum;
         document.getElementById("optOutfits").innerText = optStats.outfits;
         document.getElementById("bonusDays").innerText = "+" + (optStats.outfits - target);
         document.getElementById("optSplit").innerHTML = formatSplit(optStats.split);
     }
 
-    // --- Helper: Formats the array [8, 7, 7] into "8 Shirts<br>7 Pants<br>7 Socks" ---
     function formatSplit(numbers) {
         return numbers.map((count, index) => {
-            // Use the label from our list, or "Category X" if we run out of names
             let name = CAT_LABELS[index] || `Category ${index + 1}`;
             return `<b>${count}</b> ${name}`;
         }).join(" &nbsp;×&nbsp; ");
     }
 
-    // --- LOGIC: Optimization (Climbing Method) ---
     function getOptimizedStats(target, cats) {
         let base = Math.floor(target ** (1/cats));
         let wardrobe = new Array(cats).fill(base); 
-        
         while (getProduct(wardrobe) < target) {
             let smallestIdx = wardrobe.indexOf(Math.min(...wardrobe));
             wardrobe[smallestIdx]++;
@@ -152,18 +199,14 @@
         return { split: wardrobe, sum: getSum(wardrobe), outfits: getProduct(wardrobe) };
     }
 
-    // --- LOGIC: Exact Target (Prime Factorization) ---
     function getExactStats(num, cats) {
         let factors = getPrimeFactors(num);
         let buckets = new Array(cats).fill(1);
-        
         factors.sort((a,b) => b - a);
-        
         factors.forEach(factor => {
             let minBucketIdx = buckets.indexOf(Math.min(...buckets));
             buckets[minBucketIdx] *= factor;
         });
-
         return { split: buckets, sum: getSum(buckets) };
     }
 
