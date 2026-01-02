@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wardrobe Optimizer</title>
+    <style>
+        /* CSS: Making it look nice */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .calculator-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 350px;
+            text-align: center;
+        }
+
+        h2 { margin-top: 0; color: #333; }
+
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box; /* Keeps padding inside width */
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        button:hover { background-color: #0056b3; }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9f5ff;
+            border-radius: 6px;
+            text-align: left;
+            display: none; /* Hidden until calculated */
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="calculator-card">
+    <h2>👔 Wardrobe Optimizer</h2>
+    
+    <div class="input-group">
+        <label>Number of Categories (e.g. 2, 3, 4)</label>
+        <input type="number" id="numCategories" value="2" min="1">
+    </div>
+
+    <div class="input-group">
+        <label>Time Range</label>
+        <select id="range">
+            <option value="30">1 Month (30 Days)</option>
+            <option value="365" selected>1 Year (365 Days)</option>
+            <option value="29200">Lifetime (80 Years)</option>
+        </select>
+    </div>
+
+    <button onclick="calculate()">Calculate Best Split</button>
+
+    <div id="result">
+        </div>
+</div>
+
+<script>
+    // JAVASCRIPT: The Brains 🧠
+    
+    function calculate() {
+        // 1. Get the User Input
+        let cats = Number(document.getElementById("numCategories").value);
+        let targetDays = Number(document.getElementById("range").value);
+
+        // Safety check
+        if (cats < 1) {
+            alert("Please enter at least 1 category.");
+            return;
+        }
+
+        // 2. The Logic: Find the N-th root and floor it
+        // Example: Square root of 365 is 19.1 -> base is 19
+        let baseItem = Math.floor(targetDays ** (1/cats));
+
+        // Create an array for our categories (e.g. [19, 19])
+        let wardrobe = [];
+        for(let i = 0; i < cats; i++) {
+            wardrobe.push(baseItem);
+        }
+
+        // 3. Optimization Loop
+        // If 19*19 = 361 (too low), add 1 item to the smallest category until we hit target
+        while (getProduct(wardrobe) < targetDays) {
+            // Find the smallest pile
+            let smallestIndex = wardrobe.indexOf(Math.min(...wardrobe));
+            // Add 1 item to that pile
+            wardrobe[smallestIndex]++;
+        }
+
+        // 4. Calculate Final Stats
+        let totalItems = getSum(wardrobe);
+        let totalOutfits = getProduct(wardrobe);
+
+        // 5. Update the HTML
+        let resultDiv = document.getElementById("result");
+        resultDiv.style.display = "block";
+        
+        resultDiv.innerHTML = `
+            <p><strong>Strategy:</strong> <span class="highlight">${wardrobe.join(" x ")}</span> items</p>
+            <p><strong>Total Items to Buy:</strong> ${totalItems}</p>
+            <p><strong>Total Outfits:</strong> ${totalOutfits}</p>
+            <p style="font-size:0.8rem; color:#666;">This covers ${targetDays} days!</p>
+        `;
+    }
+
+    // Helper function to multiply all numbers in an array
+    function getProduct(arr) {
+        return arr.reduce((a, b) => a * b, 1);
+    }
+
+    // Helper function to add all numbers in an array
+    function getSum(arr) {
+        return arr.reduce((a, b) => a + b, 0);
+    }
+</script>
+
+</body>
+</html>
