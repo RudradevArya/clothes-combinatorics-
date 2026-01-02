@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wardrobe Optimizer</title>
     <style>
-        /* CSS: Making it look nice */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             background-color: #f0f2f5;
             display: flex;
             justify-content: center;
@@ -15,39 +14,30 @@
             height: 100vh;
             margin: 0;
         }
-
         .calculator-card {
             background: white;
             padding: 2rem;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             width: 350px;
-            text-align: center;
         }
-
-        h2 { margin-top: 0; color: #333; }
-
-        .input-group {
-            margin-bottom: 15px;
-            text-align: left;
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.9rem; margin-bottom: 5px; color: #666; }
+        
+        /* New Layout for Time Range */
+        .time-controls {
+            display: flex;
+            gap: 10px;
         }
-
-        label {
-            display: block;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-            color: #666;
-        }
-
-        input {
-            width: 100%;
+        select, input {
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 6px;
             font-size: 1rem;
-            box-sizing: border-box; 
+            width: 100%;
+            box-sizing: border-box;
         }
-
+        
         button {
             width: 100%;
             padding: 12px;
@@ -56,114 +46,103 @@
             border: none;
             border-radius: 6px;
             font-size: 1rem;
-            cursor: pointer;
             font-weight: bold;
-            transition: background 0.2s;
+            cursor: pointer;
             margin-top: 10px;
         }
-
         button:hover { background-color: #0056b3; }
-
+        
         #result {
             margin-top: 20px;
             padding: 15px;
             background-color: #e9f5ff;
             border-radius: 6px;
-            text-align: left;
-            display: none; 
-        }
-
-        .highlight {
-            font-weight: bold;
-            color: #007bff;
+            display: none;
         }
     </style>
 </head>
 <body>
 
 <div class="calculator-card">
-    <h2>👔 Wardrobe Optimizer</h2>
+    <h2 style="margin-top:0;">👔 Wardrobe Optimizer</h2>
     
     <div class="input-group">
-        <label>Number of Categories (e.g. 2 for Shirt/Pant)</label>
-        <input type="number" id="numCategories" value="2" min="1">
+        <label>Number of Categories</label>
+        <input type="number" id="numCategories" value="3" min="1" placeholder="e.g. 3">
     </div>
 
     <div class="input-group">
-        <label>Time Range (Days)</label>
-        <input type="number" id="timeRange" list="timeSuggestions" placeholder="e.g. 30 or 365">
-        <datalist id="timeSuggestions">
-            <option value="30"></option>
-            <option value="365"></option>
-            <option value="29200"></option>
-        </datalist>
+        <label>Time Range</label>
+        <div class="time-controls">
+            <select id="presetRange" onchange="updateDays()">
+                <option value="" disabled>Select...</option>
+                <option value="30">1 Month</option>
+                <option value="365" selected>1 Year</option>
+                <option value="366">Leap Year</option>
+                <option value="29200">Lifetime</option>
+            </select>
+            <input type="number" id="targetDays" value="365" placeholder="Days">
+        </div>
     </div>
 
     <button onclick="calculate()">Calculate Best Split</button>
 
-    <div id="result">
-        </div>
+    <div id="result"></div>
 </div>
 
 <script>
-    // JAVASCRIPT: The Brains 🧠
-    
-    function calculate() {
-        // 1. Get the User Input
-        // grabbing values directly
-        let cats = Number(document.getElementById("numCategories").value);
-        let targetDays = Number(document.getElementById("timeRange").value);
+    // 1. Helper to sync Dropdown with Text Box
+    function updateDays() {
+        let dropdown = document.getElementById("presetRange");
+        let manualInput = document.getElementById("targetDays");
+        manualInput.value = dropdown.value;
+    }
 
-        // checkzz
+    // 2. The Calculation Logic
+    function calculate() {
+        let cats = Number(document.getElementById("numCategories").value);
+        let targetDays = Number(document.getElementById("targetDays").value);
+
         if (cats < 1 || targetDays < 1) {
-            alert("Please enter valid numbers for categories and days.");
+            alert("Please enter valid numbers.");
             return;
         }
 
-        // 2. The Logic: Find the N-th root and floor it
-        // Example: Square root of 365 is ~19.1 -> base is 19
+        // Find balanced split (Base Item count)
+        // e.g., cube root of 366 is ~7.1
         let baseItem = Math.floor(targetDays ** (1/cats));
-
-        // Create an array for our categories (e.g. [19, 19])
+        
+        // Start with equal piles: [7, 7, 7]
         let wardrobe = [];
         for(let i = 0; i < cats; i++) {
             wardrobe.push(baseItem);
         }
 
-        // 3. Optimization Loop
-        // If 19*19 = 361 (too low), add 1 item to the smallest category until we hit target
+        // Add items one by one until we hit the target
+        // [7,7,7] -> 343 (too low)
+        // [8,7,7] -> 392 (Success!)
         while (getProduct(wardrobe) < targetDays) {
-            // Find the smallest pile
             let smallestIndex = wardrobe.indexOf(Math.min(...wardrobe));
-            // Add 1 item to that pile
             wardrobe[smallestIndex]++;
         }
 
-        // 4. Calculate Final Stats
         let totalItems = getSum(wardrobe);
         let totalOutfits = getProduct(wardrobe);
 
-        // 5. Update the HTML
         let resultDiv = document.getElementById("result");
         resultDiv.style.display = "block";
-        
         resultDiv.innerHTML = `
-            <p><strong>Strategy:</strong> <span class="highlight">${wardrobe.join(" x ")}</span> items</p>
+            <p><strong>Ideal Split:</strong> <span style="color:#007bff; font-weight:bold">${wardrobe.join(" x ")}</span></p>
             <p><strong>Total Items to Buy:</strong> ${totalItems}</p>
             <p><strong>Total Outfits:</strong> ${totalOutfits}</p>
-            <p style="font-size:0.8rem; color:#666;">This covers ${targetDays} days!</p>
+            <p style="font-size:0.8rem; color:#666;">
+                Covering ${targetDays} days with minimum items.
+            </p>
         `;
     }
 
-    // Helper: Multiply all numbers in an array
-    function getProduct(arr) {
-        return arr.reduce((a, b) => a * b, 1);
-    }
-
-    // Helper: Add all numbers in an array
-    function getSum(arr) {
-        return arr.reduce((a, b) => a + b, 0);
-    }
+    function getProduct(arr) { return arr.reduce((a, b) => a * b, 1); }
+    function getSum(arr) { return arr.reduce((a, b) => a + b, 0); }
 </script>
 
 </body>
